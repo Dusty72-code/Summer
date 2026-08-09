@@ -11,11 +11,11 @@
 #include <string.h>
 
 #define OLED_I2C_HANDLE hi2c1
-#define OLED_I2C_ADDR 0x78U
-#define OLED_WIDTH 128U
-#define OLED_HEIGHT 64U
-#define OLED_PAGES (OLED_HEIGHT / 8U)
-#define OLED_REFRESH_PERIOD_MS 400U
+#define OLED_I2C_ADDR 0x78
+#define OLED_WIDTH 128
+#define OLED_HEIGHT 64
+#define OLED_PAGES (OLED_HEIGHT / 8)
+#define OLED_REFRESH_PERIOD_MS 400
 
 void BSP_OLED_Init(void);
 void BSP_OLED_Clear(void);
