@@ -18,7 +18,7 @@ extern CAN_AppState_t g_can_state;
 
 void CAN_App_Init(void);
 //云台
-void AN_App_SetGimbalCtrl(int16_t servo_speed, int16_t wheel_speed);
+void CAN_App_SetGimbalCtrl(int16_t servo_speed, int16_t wheel_speed);
 void CAN_App_SetStatusFlag(uint8_t flag, uint8_t enable);
 ChassisFeedbackMsg_t CAN_App_GetChassisFeedback(void);
 //底盘
