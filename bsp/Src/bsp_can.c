@@ -3,8 +3,6 @@
 //
 #include "bsp_can.h"
 
-CAN_HandleTypeDef hcan;
-
 static void (*user_rx_callback)(CAN_HandleTypeDef *, uint32_t, uint8_t *) = NULL;
 
 HAL_StatusTypeDef BSP_CAN_Send(CAN_HandleTypeDef *hcan, uint32_t id, uint8_t *data, uint8_t len) {
