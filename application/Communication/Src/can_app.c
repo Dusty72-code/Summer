@@ -51,3 +51,14 @@ uint8_t CAN_App_IsGimbalCtrlUpdated(void) {
     g_can_state.gimbal_ctrl_updated = 0;
     return f;
 }
+
+void CAN_App_SetSelfTest(uint8_t enable) {
+    if (enable)
+        g_can_state.gimbal_ctrl.status_flags |= STATUS_SELF_TEST;
+    else
+        g_can_state.gimbal_ctrl.status_flags &= (uint8_t)~STATUS_SELF_TEST;
+}
+
+uint8_t CAN_App_IsSelfTest(void) {
+    return (g_can_state.gimbal_ctrl.status_flags & STATUS_SELF_TEST) ? 1 : 0;
+}

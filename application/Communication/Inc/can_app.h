@@ -26,4 +26,7 @@ void CAN_App_SetChassisFeedback(int16_t actual_speed, int16_t encoder_raw);
 GimbalCtrlMsg_t CAN_App_GetGimbalCtrl(void);
 uint8_t CAN_App_IsGimbalCtrlUpdated(void);
 
+void CAN_App_SetSelfTest(uint8_t enable);
+uint8_t CAN_App_IsSelfTest(void);
+
 #endif //SUMMER_CAN_APP_H
