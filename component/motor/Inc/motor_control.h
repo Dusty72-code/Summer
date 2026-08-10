@@ -22,6 +22,7 @@ typedef struct {
     float actual_rpm;
     int32_t last_encoder;
     int16_t output_pwm;
+    uint8_t motor_online;
 } MotorController;
 
 extern volatile uint8_t motor_error;

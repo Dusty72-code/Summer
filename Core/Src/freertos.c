@@ -212,7 +212,8 @@ void StartCAN_SendTask(void *argument)
     ChassisFeedbackMsg_t *cf = &g_can_state.chassis_feedback;
     cf->chassis_heartbeat++;
     Protocol_EncodeChassisFeedback(cf, tx);
-    BSP_CAN_Send(&hcan, CAN_CHASSIS_TO_GIMBAL_ID, tx, 8);
+    if (BSP_CAN_Send(&hcan, CAN_CHASSIS_TO_GIMBAL_ID, tx, 8) == HAL_OK)
+      CAN_App_SendDone();
 #endif
     osDelay(20);
   }
@@ -247,12 +248,6 @@ void StartCAN_RecvTask(void *argument)
   /* USER CODE END StartCAN_RecvTask */
 }
 
-/* USER CODE BEGIN Header_StartCAN_HBTask */
-/**
-* @brief Function implementing the CAN_HBTask thread.
-* @param argument: Not used
-* @retval None
-*/
 /* USER CODE BEGIN Header_StartLEDTask */
 /**
 * @brief Function implementing the LEDTask thread.
@@ -266,6 +261,10 @@ void StartLEDTask(void *argument)
   LED_SelfTest(3);
   for(;;)
   {
+    uint8_t blink = SelfTest_ConsumeBlink();
+    if (blink > 0) {
+      LED_SelfTest(blink);
+    }
     if (SelfTest_IsActive()) {
       LED_On();
     }
@@ -341,6 +340,7 @@ void StartMotorTask(void *argument)
   for(;;)
   {
     MotorControl_Update();
+    CAN_App_UpdateComm();
     osDelay(10);
   }
   /* USER CODE END StartMotorTask */
@@ -392,6 +392,7 @@ static void CAN_RxCallback(CAN_HandleTypeDef *hcan, uint32_t id, uint8_t *data)
   if (id == CAN_GIMBAL_TO_CHASSIS_ID) {
     Protocol_DecodeGimbalCtrl(data, &g_can_state.gimbal_ctrl);
     g_can_state.gimbal_ctrl.servo_online = 1;
+    CAN_App_RecvPeer();
   }
 #endif
 }

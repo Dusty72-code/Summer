@@ -10,5 +10,6 @@
 void SelfTest_Start(void);
 void SelfTest_Update(void);
 uint8_t SelfTest_IsActive(void);
+uint8_t SelfTest_ConsumeBlink(void);
 
 #endif //SUMMER_SELF_TEST_H

@@ -5,7 +5,6 @@
 #include "bsp_motor.h"
 #include "can_app.h"
 #include "self_test.h"
-#include "cmsis_os.h"
 
 MotorController g_motor;
 volatile uint8_t motor_error = 0;
@@ -23,6 +22,7 @@ void MotorControl_Init(void) {
     g_motor.actual_rpm = 0.0f;
     g_motor.last_encoder = BSP_GetEncoderCount();
     g_motor.output_pwm = 0;
+    g_motor.motor_online = 1;
     BSP_MotorInit();
     BSP_MotorStop();
 }
@@ -36,32 +36,19 @@ void MotorControl_Update(void) {
     g_motor.last_encoder = curr;
     float dt = (float)MOTOR_CTRL_PERIOD_MS / 1000.0f;
     g_motor.actual_rpm = calc_motor_rpm(delta, dt);
-    if (g_motor.actual_rpm < 0.0f) g_motor.actual_rpm = -g_motor.actual_rpm;
     if (!SelfTest_IsActive() && CAN_App_IsGimbalCtrlUpdated()) {
         GimbalCtrlMsg_t ctrl = CAN_App_GetGimbalCtrl();
         g_motor.target_rpm = (float)ctrl.wheel_target_speed;
     }
-    PID_SetSetpoint(&g_motor.speed_pid, g_motor.target_rpm);
-    if (g_motor.target_rpm == 0.0f &&
-        g_motor.actual_rpm < MOTOR_ZERO_SPEED_THRESHOLD) {
+    if (g_motor.target_rpm == 0.0f) {
         g_motor.output_pwm = 0;
-        motor_error = 0;
         BSP_MotorStop();
+        motor_error = 0;
     } else {
+        PID_SetSetpoint(&g_motor.speed_pid, g_motor.target_rpm);
         float out = PID_Calculate(&g_motor.speed_pid, g_motor.actual_rpm);
         g_motor.output_pwm = (int16_t)out;
         BSP_MotorSetPWM(g_motor.output_pwm);
-        static uint32_t last_zero_check = 0;
-        uint32_t now = HAL_GetTick();
-        if (now - last_zero_check > 1000) {
-            last_zero_check = now;
-            if (g_motor.target_rpm > MOTOR_ZERO_SPEED_THRESHOLD &&
-                g_motor.actual_rpm < MOTOR_ZERO_SPEED_THRESHOLD) {
-                motor_error = 1;
-            } else {
-                motor_error = 0;
-            }
-        }
     }
     CAN_App_SetChassisFeedback((int16_t)g_motor.actual_rpm, (int16_t)delta);
 }

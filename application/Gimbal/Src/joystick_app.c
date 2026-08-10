@@ -14,7 +14,7 @@ void Joystick_App_Update(void) {
     }
     int8_t x_percent = BSP_Joystick_GetXPercent();
     int8_t y_percent = BSP_Joystick_GetYPercent();
-    int8_t servo_rpm = (int8_t)((x_percent * (int16_t)SERVO_MAX_SPEED_RPM) / 100);
-    int8_t wheel_rpm = (int8_t)((y_percent * (int16_t)WHEEL_MAX_SPEED_RPM) / 100);
+    int16_t servo_rpm = x_percent * SERVO_MAX_SPEED_RPM / 100;
+    int16_t wheel_rpm = y_percent * WHEEL_MAX_SPEED_RPM / 100;
     CAN_App_SetGimbalCtrl(servo_rpm, wheel_rpm);
 }

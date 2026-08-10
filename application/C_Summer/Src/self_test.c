@@ -17,20 +17,26 @@
 
 static uint8_t g_active = 0;
 static uint32_t g_stage_start = 0;
+static uint8_t g_blink_count = 0;
 
 void SelfTest_Start(void) {
     if (g_active) return;
     g_active = 1;
     g_stage_start = HAL_GetTick();
 #ifdef GIMBAL
-    LED_SelfTest(2);
+    g_blink_count = 2;
 #endif
-    LED_On();
     CAN_App_SetSelfTest(1);
 }
 
 uint8_t SelfTest_IsActive(void) {
     return g_active;
+}
+
+uint8_t SelfTest_ConsumeBlink(void) {
+    uint8_t n = g_blink_count;
+    g_blink_count = 0;
+    return n;
 }
 
 #ifdef GIMBAL
