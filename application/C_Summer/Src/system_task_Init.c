@@ -2,10 +2,10 @@
 // Created by Dolores on 2026/8/10.
 //
 #include "system_task_init.h"
+#include "Summer.h"
 #include "bsp_can.h"
 #include "can_app.h"
 #include "can.h"
-#include "Summer.h"
 
 #ifdef GIMBAL
 #include "bsp_servo.h"
@@ -18,7 +18,6 @@
 #endif
 
 void System_Periph_Init(void) {
-    MX_CAN_Init();
     CAN_App_Init();
 
 #ifdef GIMBAL
