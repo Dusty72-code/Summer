@@ -4,6 +4,7 @@
 #include "motor_control.h"
 #include "bsp_motor.h"
 #include "can_app.h"
+#include "self_test.h"
 #include "cmsis_os.h"
 
 MotorController g_motor;
@@ -27,14 +28,17 @@ void MotorControl_Init(void) {
 }
 
 void MotorControl_Update(void) {
+    if (CAN_App_IsSelfTest() && !SelfTest_IsActive()) {
+        SelfTest_Start();
+    }
     int32_t curr = BSP_GetEncoderCount();
     int32_t delta = curr - g_motor.last_encoder;
     g_motor.last_encoder = curr;
     float dt = (float)MOTOR_CTRL_PERIOD_MS / 1000.0f;
     g_motor.actual_rpm = calc_motor_rpm(delta, dt);
     if (g_motor.actual_rpm < 0.0f) g_motor.actual_rpm = -g_motor.actual_rpm;
-    GimbalCtrlMsg_t ctrl = CAN_App_GetGimbalCtrl();
-    if (CAN_App_IsGimbalCtrlUpdated()) {
+    if (!SelfTest_IsActive() && CAN_App_IsGimbalCtrlUpdated()) {
+        GimbalCtrlMsg_t ctrl = CAN_App_GetGimbalCtrl();
         g_motor.target_rpm = (float)ctrl.wheel_target_speed;
     }
     PID_SetSetpoint(&g_motor.speed_pid, g_motor.target_rpm);
