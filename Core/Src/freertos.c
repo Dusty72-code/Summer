@@ -145,6 +145,7 @@ void MX_FREERTOS_Init(void) {
   HAL_CAN_Start(&hcan);
   BSP_CAN_ConfigFilter(&hcan, 0, 0, CAN_RX_FIFO0);
   BSP_CAN_InstallRxCallback(&hcan, CAN_RxCallback);
+  HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */

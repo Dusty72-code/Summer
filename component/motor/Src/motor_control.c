@@ -9,6 +9,11 @@
 MotorController g_motor;
 volatile uint8_t motor_error = 0;
 
+static uint32_t g_no_move_since = 0;
+static uint32_t g_probe_start = 0;
+static int32_t g_probe_enc0 = 0;
+static uint8_t g_probing = 0;
+
 static float calc_motor_rpm(int32_t delta_count, float period_s) {
     if (period_s <= 0.0f) return 0.0f;
     float rev_per_sec = (float)delta_count / (float)(11.0f * 30.0f) / period_s;
@@ -23,6 +28,9 @@ void MotorControl_Init(void) {
     g_motor.last_encoder = BSP_GetEncoderCount();
     g_motor.output_pwm = 0;
     g_motor.motor_online = 1;
+    g_no_move_since = 0;
+    g_probe_start = 0;
+    g_probing = 0;
     BSP_MotorInit();
     BSP_MotorStop();
 }
@@ -40,15 +48,47 @@ void MotorControl_Update(void) {
         GimbalCtrlMsg_t ctrl = CAN_App_GetGimbalCtrl();
         g_motor.target_rpm = (float)ctrl.wheel_target_speed;
     }
-    if (g_motor.target_rpm == 0.0f) {
-        g_motor.output_pwm = 0;
-        BSP_MotorStop();
+    uint32_t now = HAL_GetTick();
+    if (SelfTest_IsActive()) {
+        g_motor.motor_online = 1;
         motor_error = 0;
-    } else {
+        return;
+    }
+
+    if (g_motor.target_rpm != 0.0f) {
         PID_SetSetpoint(&g_motor.speed_pid, g_motor.target_rpm);
         float out = PID_Calculate(&g_motor.speed_pid, g_motor.actual_rpm);
         g_motor.output_pwm = (int16_t)out;
         BSP_MotorSetPWM(g_motor.output_pwm);
+        if (g_motor.actual_rpm > MOTOR_ZERO_SPEED_THRESHOLD ||
+            g_motor.actual_rpm < -MOTOR_ZERO_SPEED_THRESHOLD) {
+            g_motor.motor_online = 1;
+            motor_error = 0;
+            g_no_move_since = 0;
+        } else {
+            if (g_no_move_since == 0) g_no_move_since = now;
+            else if (now - g_no_move_since > 1500) {
+                g_motor.motor_online = 0;
+                motor_error = 1;
+            }
+        }
+    } else {
+        if (!g_probing && now - g_probe_start > 1500) {
+            g_probe_enc0 = BSP_GetEncoderCount();
+            BSP_MotorSetPWM(800);
+            g_probing = 1;
+            g_probe_start = now;
+        } else if (g_probing && now - g_probe_start > 80) {
+            int32_t diff = BSP_GetEncoderCount() - g_probe_enc0;
+            BSP_MotorStop();
+            g_probing = 0;
+            g_probe_start = now;
+            g_motor.motor_online = (diff != 0) ? 1 : 0;
+            motor_error = g_motor.motor_online ? 0 : 1;
+        } else if (!g_probing) {
+            BSP_MotorStop();
+        }
     }
+    g_can_state.chassis_feedback.motor_online = g_motor.motor_online;
     CAN_App_SetChassisFeedback((int16_t)g_motor.actual_rpm, (int16_t)delta);
 }

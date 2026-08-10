@@ -45,7 +45,6 @@ ChassisFeedbackMsg_t CAN_App_GetChassisFeedback(void) {
 void CAN_App_SetChassisFeedback(int16_t actual_speed, int16_t encoder_raw) {
     g_can_state.chassis_feedback.motor_actual_speed = actual_speed;
     g_can_state.chassis_feedback.motor_encoder_raw = encoder_raw;
-    g_can_state.chassis_feedback.motor_online = 1;
 }
 
 GimbalCtrlMsg_t CAN_App_GetGimbalCtrl(void) {

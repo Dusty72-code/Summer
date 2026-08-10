@@ -23,7 +23,7 @@ void LED_SelfTest(uint8_t n) {
 }
 
 void LED_Breathe(void) {
-    const uint16_t frames = 200;
+    const uint16_t frames = 600;
     const uint32_t frame_ms = 5;
     for (uint16_t i = 0; i < frames; i++) {
         float phase = (float)i / (float)frames * 2.0f * (float)M_PI;
