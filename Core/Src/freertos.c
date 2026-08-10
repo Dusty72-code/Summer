@@ -25,7 +25,22 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "Summer.h"
+#include "can_app.h"
+#include "self_test.h"
+#include "bsp_can.h"
+#include "bsp_led.h"
+#include "can_protocol.h"
+#ifdef GIMBAL
+#include "joystick_app.h"
+#include "servo_app.h"
+#include "bsp_joystick.h"
+#include "bsp_servo.h"
+#endif
+#ifdef CHASSIS
+#include "OLED_app.h"
+#include "motor_control.h"
+#endif
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -60,13 +75,6 @@ const osThreadAttr_t CAN_RecvTask_attributes = {
   .name = "CAN_RecvTask",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityAboveNormal,
-};
-/* Definitions for CAN_HBTask */
-osThreadId_t CAN_HBTaskHandle;
-const osThreadAttr_t CAN_HBTask_attributes = {
-  .name = "CAN_HBTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for LEDTask */
 osThreadId_t LEDTaskHandle;
@@ -103,20 +111,27 @@ const osThreadAttr_t OLEDTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for SelfTestTask */
+osThreadId_t SelfTestTaskHandle;
+const osThreadAttr_t SelfTestTask_attributes = {
+  .name = "SelfTestTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
-
+static void CAN_RxCallback(CAN_HandleTypeDef *hcan, uint32_t id, uint8_t *data);
 /* USER CODE END FunctionPrototypes */
 
 void StartCAN_SendTask(void *argument);
 void StartCAN_RecvTask(void *argument);
-void StartCAN_HBTask(void *argument);
 void StartLEDTask(void *argument);
 void StartJoystickTask(void *argument);
 void StartServoTask(void *argument);
 void StartMotorTask(void *argument);
 void StartOLEDTask(void *argument);
+void StartSelfTestTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -127,7 +142,9 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-
+  HAL_CAN_Start(&hcan);
+  BSP_CAN_ConfigFilter(&hcan, 0, 0, CAN_RX_FIFO0);
+  BSP_CAN_InstallRxCallback(&hcan, CAN_RxCallback);
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -147,29 +164,20 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of CAN_SendTask */
   CAN_SendTaskHandle = osThreadNew(StartCAN_SendTask, NULL, &CAN_SendTask_attributes);
-
-  /* creation of CAN_RecvTask */
   CAN_RecvTaskHandle = osThreadNew(StartCAN_RecvTask, NULL, &CAN_RecvTask_attributes);
-
-  /* creation of CAN_HBTask */
-  CAN_HBTaskHandle = osThreadNew(StartCAN_HBTask, NULL, &CAN_HBTask_attributes);
-
-  /* creation of LEDTask */
   LEDTaskHandle = osThreadNew(StartLEDTask, NULL, &LEDTask_attributes);
+  SelfTestTaskHandle = osThreadNew(StartSelfTestTask, NULL, &SelfTestTask_attributes);
 
-  /* creation of JoystickTask */
+#ifdef GIMBAL
   JoystickTaskHandle = osThreadNew(StartJoystickTask, NULL, &JoystickTask_attributes);
-
-  /* creation of ServoTask */
   ServoTaskHandle = osThreadNew(StartServoTask, NULL, &ServoTask_attributes);
+#endif
 
-  /* creation of MotorTask */
+#ifdef CHASSIS
   MotorTaskHandle = osThreadNew(StartMotorTask, NULL, &MotorTask_attributes);
-
-  /* creation of OLEDTask */
   OLEDTaskHandle = osThreadNew(StartOLEDTask, NULL, &OLEDTask_attributes);
+#endif
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -191,10 +199,22 @@ void MX_FREERTOS_Init(void) {
 void StartCAN_SendTask(void *argument)
 {
   /* USER CODE BEGIN StartCAN_SendTask */
-  /* Infinite loop */
+  uint8_t tx[8];
   for(;;)
   {
-    osDelay(1);
+#ifdef GIMBAL
+    GimbalCtrlMsg_t *gc = &g_can_state.gimbal_ctrl;
+    gc->gimbal_heartbeat++;
+    Protocol_EncodeGimbalCtrl(gc, tx);
+    BSP_CAN_Send(&hcan, CAN_GIMBAL_TO_CHASSIS_ID, tx, 8);
+#endif
+#ifdef CHASSIS
+    ChassisFeedbackMsg_t *cf = &g_can_state.chassis_feedback;
+    cf->chassis_heartbeat++;
+    Protocol_EncodeChassisFeedback(cf, tx);
+    BSP_CAN_Send(&hcan, CAN_CHASSIS_TO_GIMBAL_ID, tx, 8);
+#endif
+    osDelay(20);
   }
   /* USER CODE END StartCAN_SendTask */
 }
@@ -209,10 +229,20 @@ void StartCAN_SendTask(void *argument)
 void StartCAN_RecvTask(void *argument)
 {
   /* USER CODE BEGIN StartCAN_RecvTask */
-  /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+#ifdef GIMBAL
+    uint8_t hb = g_can_state.chassis_feedback.chassis_heartbeat;
+    osDelay(200);
+    if (g_can_state.chassis_feedback.chassis_heartbeat == hb)
+      g_can_state.chassis_feedback.motor_online = 0;
+#endif
+#ifdef CHASSIS
+    uint8_t hb = g_can_state.gimbal_ctrl.gimbal_heartbeat;
+    osDelay(200);
+    if (g_can_state.gimbal_ctrl.gimbal_heartbeat == hb)
+      g_can_state.gimbal_ctrl.servo_online = 0;
+#endif
   }
   /* USER CODE END StartCAN_RecvTask */
 }
@@ -223,18 +253,6 @@ void StartCAN_RecvTask(void *argument)
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartCAN_HBTask */
-void StartCAN_HBTask(void *argument)
-{
-  /* USER CODE BEGIN StartCAN_HBTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
-  /* USER CODE END StartCAN_HBTask */
-}
-
 /* USER CODE BEGIN Header_StartLEDTask */
 /**
 * @brief Function implementing the LEDTask thread.
@@ -245,10 +263,26 @@ void StartCAN_HBTask(void *argument)
 void StartLEDTask(void *argument)
 {
   /* USER CODE BEGIN StartLEDTask */
-  /* Infinite loop */
+  LED_SelfTest(3);
   for(;;)
   {
-    osDelay(1);
+    if (SelfTest_IsActive()) {
+      LED_On();
+    }
+#ifdef GIMBAL
+    else if (g_can_state.chassis_feedback.motor_online) {
+      LED_On();
+    }
+#endif
+#ifdef CHASSIS
+    else if (motor_error == 0) {
+      LED_On();
+    }
+#endif
+    else {
+      LED_Breathe();
+    }
+    osDelay(200);
   }
   /* USER CODE END StartLEDTask */
 }
@@ -260,16 +294,18 @@ void StartLEDTask(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartJoystickTask */
+#ifdef GIMBAL
 void StartJoystickTask(void *argument)
 {
   /* USER CODE BEGIN StartJoystickTask */
-  /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    Joystick_App_Update();
+    osDelay(10);
   }
   /* USER CODE END StartJoystickTask */
 }
+#endif
 
 /* USER CODE BEGIN Header_StartServoTask */
 /**
@@ -278,16 +314,18 @@ void StartJoystickTask(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartServoTask */
+#ifdef GIMBAL
 void StartServoTask(void *argument)
 {
   /* USER CODE BEGIN StartServoTask */
-  /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    Servo_App_Update();
+    osDelay(20);
   }
   /* USER CODE END StartServoTask */
 }
+#endif
 
 /* USER CODE BEGIN Header_StartMotorTask */
 /**
@@ -296,16 +334,18 @@ void StartServoTask(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartMotorTask */
+#ifdef CHASSIS
 void StartMotorTask(void *argument)
 {
   /* USER CODE BEGIN StartMotorTask */
-  /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    MotorControl_Update();
+    osDelay(10);
   }
   /* USER CODE END StartMotorTask */
 }
+#endif
 
 /* USER CODE BEGIN Header_StartOLEDTask */
 /**
@@ -314,19 +354,45 @@ void StartMotorTask(void *argument)
 * @retval None
 */
 /* USER CODE END Header_StartOLEDTask */
+#ifdef CHASSIS
 void StartOLEDTask(void *argument)
 {
   /* USER CODE BEGIN StartOLEDTask */
-  /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    OLED_app_Update();
+    osDelay(100);
   }
   /* USER CODE END StartOLEDTask */
+}
+#endif
+
+void StartSelfTestTask(void *argument)
+{
+  /* USER CODE BEGIN StartSelfTestTask */
+  for(;;)
+  {
+    SelfTest_Update();
+    osDelay(10);
+  }
+  /* USER CODE END StartSelfTestTask */
 }
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
+static void CAN_RxCallback(CAN_HandleTypeDef *hcan, uint32_t id, uint8_t *data)
+{
+#ifdef GIMBAL
+  if (id == CAN_CHASSIS_TO_GIMBAL_ID) {
+    Protocol_DecodeChassisFeedback(data, &g_can_state.chassis_feedback);
+    g_can_state.chassis_feedback.motor_online = 1;
+  }
+#endif
+#ifdef CHASSIS
+  if (id == CAN_GIMBAL_TO_CHASSIS_ID) {
+    Protocol_DecodeGimbalCtrl(data, &g_can_state.gimbal_ctrl);
+    g_can_state.gimbal_ctrl.servo_online = 1;
+  }
+#endif
+}
 /* USER CODE END Application */
-
