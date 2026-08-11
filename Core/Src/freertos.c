@@ -62,18 +62,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-static const uint8_t breath_table[LED_PWM_RESOLUTION] = {
-  0,  3,  6,  9, 12, 15, 18, 21, 24, 27,
- 30, 33, 36, 39, 42, 45, 48, 50, 53, 55,
- 58, 60, 63, 65, 67, 69, 71, 73, 75, 76,
- 78, 79, 80, 81, 82, 83, 84, 84, 85, 85,
- 86, 86, 86, 86, 86, 86, 86, 85, 85, 84,
- 84, 83, 82, 81, 80, 79, 78, 76, 75, 73,
- 71, 69, 67, 65, 63, 60, 58, 55, 53, 50,
- 48, 45, 42, 39, 36, 33, 30, 27, 24, 21,
- 18, 15, 12,  9,  6,  3,  0,  0,  0,  0,
-  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-};
 static uint8_t g_self_test_active = 0U;
 /* USER CODE END Variables */
 osThreadId_t CAN_SendTaskHandle;
@@ -223,26 +211,19 @@ void StartCAN_SendTask(void *argument)
     uint32_t period = g_can_state.can_comm_ok
                     ? CAN_SEND_PERIOD_MS : CAN_SLOW_SEND_PERIOD_MS;
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(period));
-    taskENTER_CRITICAL();
 #ifdef GIMBAL
     g_can_state.gimbal_ctrl.gimbal_heartbeat = g_can_state.gimbal_heartbeat;
     GimbalCtrlMsg_t ctrl = g_can_state.gimbal_ctrl;
-    taskEXIT_CRITICAL();
     Protocol_EncodeGimbalCtrl(&ctrl, tx_data);
     HAL_StatusTypeDef status = BSP_CAN_SendMessage(CAN_GIMBAL_TO_CHASSIS_ID, tx_data, CAN_TX_TIMEOUT);
-    taskENTER_CRITICAL();
     g_can_state.gimbal_heartbeat = (g_can_state.gimbal_heartbeat + 1U) & CAN_HEARTBEAT_MASK;
-    taskEXIT_CRITICAL();
 #endif
 #ifdef CHASSIS
     g_can_state.chassis_feedback.chassis_heartbeat = g_can_state.chassis_heartbeat;
     ChassisFeedbackMsg_t fb = g_can_state.chassis_feedback;
-    taskEXIT_CRITICAL();
     Protocol_EncodeChassisFeedback(&fb, tx_data);
     HAL_StatusTypeDef status = BSP_CAN_SendMessage(CAN_CHASSIS_TO_GIMBAL_ID, tx_data, CAN_TX_TIMEOUT);
-    taskENTER_CRITICAL();
     g_can_state.chassis_heartbeat = (g_can_state.chassis_heartbeat + 1U) & CAN_HEARTBEAT_MASK;
-    taskEXIT_CRITICAL();
 #endif
     if (status == HAL_OK) g_can_state.can_tx_cnt++;
     osDelay(20);
@@ -324,12 +305,10 @@ void StartCAN_HBTask(void *argument)
     }
     g_can_state.can_comm_ok = comm_ok;
     if (prev_comm_ok != comm_ok) {
-      taskENTER_CRITICAL();
       if (comm_ok)
         g_can_state.gimbal_ctrl.status_flags &= ~STATUS_CAN_ERROR;
       else
         g_can_state.gimbal_ctrl.status_flags |= STATUS_CAN_ERROR;
-      taskEXIT_CRITICAL();
     }
 #endif
 #ifdef CHASSIS
@@ -339,12 +318,10 @@ void StartCAN_HBTask(void *argument)
     }
     g_can_state.can_comm_ok = comm_ok;
     if (prev_comm_ok != comm_ok) {
-      taskENTER_CRITICAL();
       if (comm_ok)
         g_can_state.chassis_feedback.status_flags &= ~STATUS_CAN_ERROR;
       else
         g_can_state.chassis_feedback.status_flags |= STATUS_CAN_ERROR;
-      taskEXIT_CRITICAL();
     }
 #endif
     osDelay(1);
@@ -364,53 +341,33 @@ void StartLEDTask(void *argument)
   /* USER CODE BEGIN StartLEDTask */
   (void)argument;
   LED_StartBlink();
-  uint8_t breath_idx = 0U;
   uint8_t should_breath = 0U;
   for(;;)
   {
     if (g_self_test_active) {
-      HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+      LED_On();
       vTaskDelay(pdMS_TO_TICKS(50));
       continue;
     }
+    uint8_t steady_on = 0U;
 #ifdef GIMBAL
-    else if (g_can_state.chassis_feedback_rx.motor_online) {
-      HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+    if (g_can_state.chassis_feedback_rx.motor_online) {
+      steady_on = 1U;
     }
+    should_breath = g_can_state.can_comm_ok ? 0U : 1U;
 #endif
 #ifdef CHASSIS
-    else if (MotorControl_IsError() == 0) {
-      HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+    if (MotorControl_IsError() == 0) {
+      steady_on = 1U;
     }
+    should_breath = g_motor.motor_error ? 1U : 0U;
 #endif
-    else {
-#ifdef GIMBAL
-      should_breath = g_can_state.can_comm_ok ? 0U : 1U;
-#endif
-#ifdef CHASSIS
-      should_breath = g_motor.motor_error ? 1U : 0U;
-#endif
-      if (should_breath) {
-        uint8_t level = breath_table[breath_idx];
-        uint32_t on_ms  = (uint32_t)level * LED_BREATH_STEP_MS / 100U;
-        uint32_t off_ms = LED_BREATH_STEP_MS - on_ms;
-        if (on_ms > 0U) {
-          HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-          vTaskDelay(pdMS_TO_TICKS(on_ms));
-        }
-        if (off_ms > 0U) {
-          HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
-          vTaskDelay(pdMS_TO_TICKS(off_ms));
-        }
-        breath_idx++;
-        if (breath_idx >= LED_PWM_RESOLUTION) breath_idx = 0U;
-      } else {
-        HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
-        vTaskDelay(pdMS_TO_TICKS(200));
-        breath_idx = 0U;
-      }
+    if (steady_on) {
+      LED_On();
+      vTaskDelay(pdMS_TO_TICKS(200));
+    } else {
+      LED_Breath(should_breath);
     }
-    osDelay(200);
   }
   /* USER CODE END StartLEDTask */
 }
@@ -497,11 +454,9 @@ void StartMotorTask(void *argument)
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(MOTOR_CTRL_PERIOD_MS));
     int32_t encoder_delta = BSP_Motor_GetEncoderAndClear();
     float actual_rpm = encoder_to_rpm(encoder_delta, MOTOR_CTRL_DT);
-    taskENTER_CRITICAL();
     g_motor.actual_rpm = actual_rpm;
     g_motor.raw_encoder = encoder_delta;
     g_motor.motor_online = 1U;
-    taskEXIT_CRITICAL();
     float target_rpm = g_motor.target_rpm;
     if (CAN_App_IsGimbalCtrlUpdated()) {
       GimbalCtrlMsg_t ctrl = CAN_App_GetGimbalCtrl();
@@ -577,9 +532,9 @@ static void SelfTest_Execute(void)
 {
   CAN_App_SetStatusFlag(STATUS_SELF_TEST, 1U);
   for (int i = 0; i < 2; i++) {
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+    LED_Off();
     vTaskDelay(pdMS_TO_TICKS(150));
-    HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+    LED_On();
     vTaskDelay(pdMS_TO_TICKS(150));
   }
   CAN_App_SetGimbalCtrl(60, 0);
@@ -596,7 +551,7 @@ static void SelfTest_Execute(void)
   vTaskDelay(pdMS_TO_TICKS(SELF_TEST_PHASE_DURATION_MS));
   CAN_App_SetGimbalCtrl(0, 0);
   CAN_App_SetStatusFlag(STATUS_SELF_TEST, 0U);
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+  LED_On();
 }
 #endif
 

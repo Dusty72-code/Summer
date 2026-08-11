@@ -5,8 +5,6 @@
 #include "can_app.h"
 #include <math.h>
 #include <string.h>
-#include "FreeRTOS.h"
-#include "task.h"
 
 MotorCtrl_t g_motor;
 
@@ -23,10 +21,8 @@ void MotorControl_Init(void)
 }
 
 void MotorControl_SetTarget(float rpm) {
-    taskENTER_CRITICAL();
     g_motor.target_rpm = rpm;
     g_motor.target_updated = 1U;
-    taskEXIT_CRITICAL();
 }
 
 float MotorControl_GetActualSpeed(void) {
