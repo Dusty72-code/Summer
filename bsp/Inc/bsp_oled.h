@@ -21,8 +21,6 @@ void BSP_OLED_Init(void);
 void BSP_OLED_Clear(void);
 void BSP_OLED_ShowChar(uint8_t x, uint8_t y, char ch);
 void BSP_OLED_ShowString(uint8_t x, uint8_t y, const char *str);
-void BSP_OLED_ShowNum(uint8_t x, uint8_t y, int32_t num, uint8_t width);
-void BSP_OLED_DrawPoint(uint8_t x, uint8_t y, uint8_t color);
 void BSP_OLED_Refresh(void);
 
 #endif //SUMMER_BSP_OLED_H

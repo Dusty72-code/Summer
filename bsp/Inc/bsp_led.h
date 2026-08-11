@@ -8,9 +8,9 @@
 #include "main.h"
 #include <stdint.h>
 
-void LED_On(void);
-void LED_Off(void);
-void LED_SelfTest(uint8_t n);
-void LED_Breathe(void);
+#define LED_BREATH_STEP_MS 10
+#define LED_PWM_RESOLUTION 100
+
+void LED_StartBlink(void);
 
 #endif //SUMMER_BSP_LED_H

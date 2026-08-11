@@ -1,10 +1,9 @@
-//
-// Created by Dolores on 2026/8/9.
-//
-
 #ifndef SUMMER_JOYSTICK_APP_H
 #define SUMMER_JOYSTICK_APP_H
 
-void Joystick_App_Update(void);
+#include <stdint.h>
+
+void Joystick_APP_Update(int16_t *servo_rpm, int16_t *wheel_rpm);
+uint8_t Joystick_APP_IsSWPressed(void);
 
 #endif //SUMMER_JOYSTICK_APP_H

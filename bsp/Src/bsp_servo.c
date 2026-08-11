@@ -15,8 +15,14 @@ void BSP_Servo_SetPulse(uint16_t pulse_us) {
 }
 
 void BSP_Servo_SetSpeed(int8_t speed) {
-    int32_t pulse = SERVO_PULSE_STOP + (int32_t)speed * (SERVO_PULSE_MAX - SERVO_PULSE_STOP) / 100;
-    BSP_Servo_SetPulse((uint16_t)pulse);
+    uint16_t pulse;
+    if (speed > 100)  speed = 100;
+    if (speed < -100) speed = -100;
+    if (speed == 0)
+        pulse = SERVO_PULSE_STOP;
+    else
+        pulse = SERVO_PULSE_STOP + (int32_t)speed * 10;
+    BSP_Servo_SetPulse(pulse);
 }
 
 void BSP_Servo_Stop(void) {

@@ -10,6 +10,7 @@
 
 #define CAN_GIMBAL_TO_CHASSIS_ID 0x200
 #define CAN_CHASSIS_TO_GIMBAL_ID 0x201
+#define CAN_PROTOCOL_DLC 8
 
 typedef struct {
     int16_t servo_target_speed;

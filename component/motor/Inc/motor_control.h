@@ -5,30 +5,36 @@
 #ifndef SUMMER_MOTOR_PROTOCOL_H
 #define SUMMER_MOTOR_PROTOCOL_H
 
+#include "bsp_motor.h"
 #include "pid.h"
-#include "stdint.h"
 
-#define MOTOR_KP 120.0f
-#define MOTOR_KI 5.0f
-#define MOTOR_KD 0.0f
-#define MOTOR_OUTPUT_MIN (-7199.0f)
-#define MOTOR_OUTPUT_MAX 7199.0f
 #define MOTOR_CTRL_PERIOD_MS 10
+#define MOTOR_CTRL_DT (MOTOR_CTRL_PERIOD_MS / 1000.0f)
+#define MOTOR_PID_MODE PID_MODE_POSITIONAL
+#define MOTOR_KP_DEFAULT 120.0f
+#define MOTOR_KI_DEFAULT 2.0f
+#define MOTOR_KD_DEFAULT 0.0f
+#define MOTOR_OUTPUT_MIN (-(float)MOTOR_PWM_MAX)
+#define MOTOR_OUTPUT_MAX ((float)MOTOR_PWM_MAX)
 #define MOTOR_ZERO_SPEED_THRESHOLD 2.0f
 
 typedef struct {
-    PID_Controller speed_pid;
+    PID_t speed_pid;
     float target_rpm;
+    uint8_t target_updated;
     float actual_rpm;
-    int32_t last_encoder;
-    int16_t output_pwm;
+    int32_t raw_encoder;
     uint8_t motor_online;
-} MotorController;
+    float pid_output;
+    uint8_t motor_error;
+} MotorCtrl_t;
 
-extern volatile uint8_t motor_error;
-extern MotorController g_motor;
+extern MotorCtrl_t g_motor;
 
 void MotorControl_Init(void);
-void MotorControl_Update(void);
+void MotorControl_SetTarget(float rpm);
+float MotorControl_GetActualSpeed(void);
+uint8_t MotorControl_IsOnline(void);
+uint8_t MotorControl_IsError(void);
 
 #endif //SUMMER_MOTOR_PROTOCOL_H

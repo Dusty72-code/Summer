@@ -1,38 +1,55 @@
-//
-// Created by Dolores on 2026/8/9.
-//
 #include "OLED_app.h"
 #include "bsp_oled.h"
 #include "can_app.h"
 #include "motor_control.h"
-#include "self_test.h"
-#include "stm32f1xx_hal.h"
+#include "Summer.h"
+#include <stdio.h>
+#include "FreeRTOS.h"
+#include "task.h"
 
-void OLED_app_Update(void) {
-    GimbalCtrlMsg_t gimbal_ctrl = CAN_App_GetGimbalCtrl();
-    uint32_t up_sec = (uint32_t)(HAL_GetTick() / 1000);
+void OLED_app_Update(void)
+{
     BSP_OLED_Clear();
-    if (SelfTest_IsActive()) {
-        BSP_OLED_ShowString(0, 0, "=  SELF TEST  =");
-    } else {
-        BSP_OLED_ShowString(0, 0, "RM Chassis C Board");
+    char line[22];
+    {
+        GimbalCtrlMsg_t ctrl = g_can_state.gimbal_ctrl_rx;
+        if (ctrl.status_flags & STATUS_SELF_TEST) {
+            BSP_OLED_ShowString(0, 0, "=  SELF TEST  =");
+        } else {
+            BSP_OLED_ShowString(0, 0, "Chassis C Board");
+        }
     }
-    BSP_OLED_ShowString(0, 1, "Srv :");
-    BSP_OLED_ShowNum(40, 1, gimbal_ctrl.servo_target_speed, 5);
-    BSP_OLED_ShowString(96, 1, gimbal_ctrl.servo_online ? "[OK]" : "[OFF]");
-    BSP_OLED_ShowString(0, 2, "MtrT:");
-    BSP_OLED_ShowNum(40, 2, gimbal_ctrl.wheel_target_speed, 5);
-    BSP_OLED_ShowString(0, 3, "MtrR:");
-    BSP_OLED_ShowNum(40, 3, (int32_t)g_motor.actual_rpm, 5);
-    BSP_OLED_ShowString(96, 3, g_motor.motor_online ? "[OK]" : "[ERR]");
-    BSP_OLED_ShowString(0, 4, "CAN:[");
-    BSP_OLED_ShowString(40, 4, g_can_state.can_comm_ok ? "OK" : "ERR");
-    BSP_OLED_ShowString(64, 4, "]G-C");
-    BSP_OLED_ShowString(0, 5, "TX:");
-    BSP_OLED_ShowNum(24, 5, (int32_t)g_can_state.can_tx_cnt, 4);
-    BSP_OLED_ShowString(56, 5, "RX:");
-    BSP_OLED_ShowNum(80, 5, (int32_t)g_can_state.can_rx_cnt, 4);
-    BSP_OLED_ShowString(0, 6, "Up:");
-    BSP_OLED_ShowNum(24, 6, (int32_t)up_sec, 5);
+    {
+        GimbalCtrlMsg_t ctrl = g_can_state.gimbal_ctrl_rx;
+        const char *st = ctrl.servo_online ? "OK" : "OFF";
+        snprintf(line, sizeof(line), "Srv :%5drpm[%s]", ctrl.servo_target_speed, st);
+        BSP_OLED_ShowString(0, 10, line);
+    }
+    {
+        GimbalCtrlMsg_t ctrl = g_can_state.gimbal_ctrl_rx;
+        snprintf(line, sizeof(line), "MtrT:%5drpm", ctrl.wheel_target_speed);
+        BSP_OLED_ShowString(0, 19, line);
+    }
+    {
+        int16_t actual = (int16_t)g_motor.actual_rpm;
+        const char *st = g_motor.motor_online ? "OK" : "ERR";
+        snprintf(line, sizeof(line), "MtrR:%5drpm[%s]", actual, st);
+        BSP_OLED_ShowString(0, 28, line);
+    }
+    {
+        const char *st = g_can_state.can_comm_ok ? "OK" : "ERR";
+        snprintf(line, sizeof(line), "CAN:[%s]G-C", st);
+        BSP_OLED_ShowString(0, 37, line);
+    }
+    {
+        snprintf(line, sizeof(line), "TX:%4lu RX:%4lu",
+                 g_can_state.can_tx_cnt, g_can_state.can_rx_cnt);
+        BSP_OLED_ShowString(0, 46, line);
+    }
+    {
+        uint32_t sec = xTaskGetTickCount() / 1000U;
+        snprintf(line, sizeof(line), "Up:%5lus", (unsigned long)sec);
+        BSP_OLED_ShowString(0, 55, line);
+    }
     BSP_OLED_Refresh();
 }

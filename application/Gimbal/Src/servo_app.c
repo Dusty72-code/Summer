@@ -2,13 +2,17 @@
 // Created by Dolores on 2026/8/9.
 //
 #include "servo_app.h"
-#include "bsp_servo.h"
-#include "can_app.h"
-#include "self_test.h"
+#include <string.h>
 
-void Servo_App_Update(void) {
-    if (SelfTest_IsActive()) return;
-    GimbalCtrlMsg_t ctrl = CAN_App_GetGimbalCtrl();
-    int8_t srv = (int8_t)((ctrl.servo_target_speed * 100) / SERVO_MAX_SPEED_RPM);
-    BSP_Servo_SetSpeed(srv);
+ServoCtrl_t g_servo;
+
+void ServoControl_Init(void) {
+    memset(&g_servo, 0, sizeof(g_servo));
+    g_servo.servo_online = 1U;
+    BSP_Servo_Init();
+}
+
+void ServoControl_SetSpeed(int16_t speed_percent) {
+    g_servo.target_speed = (int8_t)speed_percent;
+    g_servo.target_rpm = (int16_t)((float)speed_percent / 100.0f * (float)SERVO_MAX_SPEED_RPM);
 }

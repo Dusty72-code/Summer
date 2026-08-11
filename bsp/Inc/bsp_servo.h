@@ -12,9 +12,6 @@
 #define SERVO_PULSE_MIN 500
 #define SERVO_PULSE_MAX 2500
 
-#define SERVO_MAX_SPEED_RPM 60
-#define SERVO_SAMPLE_PERIOD_MS 10
-
 void BSP_Servo_Init(void);
 void BSP_Servo_SetPulse(uint16_t pulse_us);
 void BSP_Servo_SetSpeed(int8_t speed);

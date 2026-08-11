@@ -8,7 +8,7 @@
 #include "can.h"
 
 #ifdef GIMBAL
-#include "bsp_servo.h"
+#include "servo_app.h"
 #include "bsp_joystick.h"
 #endif
 
@@ -21,8 +21,7 @@ void System_Periph_Init(void) {
     CAN_App_Init();
 
 #ifdef GIMBAL
-    BSP_Servo_Init();
-    BSP_Joystick_Calibrate();
+    ServoControl_Init();
 #endif
 
 #ifdef CHASSIS

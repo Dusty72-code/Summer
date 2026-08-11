@@ -6,19 +6,20 @@
 #define SUMMER_BSP_CAN_H
 
 #include "main.h"
-#include <stdint.h>
-
-typedef struct {
-    uint32_t filter_id;
-    uint32_t filter_mask;
-    uint32_t filter_fifo;
-} FilterConfig;
+#include "can.h"
 
 extern CAN_HandleTypeDef hcan;
 
-HAL_StatusTypeDef BSP_CAN_Send(CAN_HandleTypeDef *hcan, uint32_t id, uint8_t *data, uint8_t len);
-void BSP_CAN_ConfigFilter(CAN_HandleTypeDef *hcan, uint32_t filter_id, uint32_t filter_mask, uint32_t fifo);
-void BSP_CAN_InstallRxCallback(CAN_HandleTypeDef *hcan, void (*cb)(CAN_HandleTypeDef *, uint32_t, uint8_t *));
-void BSP_CAN_GetTxMailboxStatus(CAN_HandleTypeDef *hcan, uint32_t *mailboxes);
+#define BSP_CAN_RX_FIFO_SIZE 8U
+
+typedef struct {
+    CAN_RxHeaderTypeDef header;
+    uint8_t data[8];
+} BSP_CAN_RxMsg_t;
+
+void BSP_CAN_FilterInit(void);
+HAL_StatusTypeDef BSP_CAN_SendMessage(uint32_t std_id, uint8_t data[8], uint32_t timeout);
+uint8_t BSP_CAN_GetRxMessage(BSP_CAN_RxMsg_t *msg);
+void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
 
 #endif //SUMMER_BSP_CAN_H
