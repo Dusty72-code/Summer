@@ -351,7 +351,7 @@ void StartLEDTask(void *argument)
     }
     uint8_t steady_on = 0U;
 #ifdef GIMBAL
-    if (g_can_state.chassis_feedback_rx.motor_online) {
+    if (g_can_state.chassis_online && g_can_state.chassis_feedback_rx.motor_online) {
       steady_on = 1U;
     }
     should_breath = g_can_state.can_comm_ok ? 0U : 1U;
