@@ -5,22 +5,10 @@
 #include "i2c.h"
 
 static uint8_t oled_buf[OLED_WIDTH * OLED_PAGES];
-static uint8_t g_oled_i2c_err_cnt = 0U;
 
 static HAL_StatusTypeDef oled_i2c_safe_write(uint8_t *pdata, uint16_t size) {
-    HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(
-        &OLED_I2C_HANDLE, OLED_I2C_ADDR, pdata, size, 20);
-    if (status != HAL_OK) {
-        g_oled_i2c_err_cnt++;
-        if (g_oled_i2c_err_cnt > 5U) {
-            HAL_I2C_DeInit(&OLED_I2C_HANDLE);
-            MX_I2C1_Init();
-            g_oled_i2c_err_cnt = 0U;
-        }
-    } else {
-        g_oled_i2c_err_cnt = 0U;
-    }
-    return status;
+    return HAL_I2C_Master_Transmit(
+        &OLED_I2C_HANDLE, OLED_I2C_ADDR, pdata, size, 100);
 }
 
 static void oled_write_cmd(uint8_t cmd) {
@@ -28,9 +16,9 @@ static void oled_write_cmd(uint8_t cmd) {
     oled_i2c_safe_write(data, 2);
 }
 
-static void oled_write_data(uint8_t val) {
+static HAL_StatusTypeDef oled_write_data(uint8_t val) {
     uint8_t data[2] = { 0x40, val };
-    oled_i2c_safe_write(data, 2);
+    return oled_i2c_safe_write(data, 2);
 }
 
 void BSP_OLED_Init(void) {
@@ -63,12 +51,13 @@ void BSP_OLED_Refresh(void) {
         oled_write_cmd(0x00);
         oled_write_cmd(0x10);
         for (uint8_t col = 0; col < OLED_WIDTH; col++) {
-            oled_write_data(oled_buf[page * OLED_WIDTH + col]);
+            if (oled_write_data(oled_buf[page * OLED_WIDTH + col]) != HAL_OK) {
+                return;
+            }
         }
     }
 }
 
-/* 6x8 ASCII 字库 */
 static const uint8_t font6x8[][6] = {
     {0x00,0x00,0x00,0x00,0x00,0x00}, {0x00,0x00,0x5F,0x00,0x00,0x00},
     {0x00,0x07,0x00,0x07,0x00,0x00}, {0x14,0x7F,0x14,0x7F,0x14,0x00},

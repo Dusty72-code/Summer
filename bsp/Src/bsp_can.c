@@ -48,6 +48,15 @@ void BSP_CAN_FilterInit(void) {
     HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
 }
 
+void BSP_CAN_Recover(void) {
+    if (HAL_CAN_GetState(&hcan) == HAL_CAN_STATE_ERROR) {
+        HAL_CAN_Stop(&hcan);
+        HAL_CAN_Start(&hcan);
+        __HAL_CAN_DISABLE_IT(&hcan, CAN_IT_ERROR);
+        HAL_CAN_ActivateNotification(&hcan, CAN_IT_RX_FIFO0_MSG_PENDING);
+    }
+}
+
 HAL_StatusTypeDef BSP_CAN_SendMessage(uint32_t std_id, uint8_t data[8], uint32_t timeout) {
     CAN_TxHeaderTypeDef tx_header = {0};
     uint32_t mailbox;
@@ -58,6 +67,9 @@ HAL_StatusTypeDef BSP_CAN_SendMessage(uint32_t std_id, uint8_t data[8], uint32_t
     tx_header.RTR = CAN_RTR_DATA;
     tx_header.DLC = 8U;
     status = HAL_CAN_AddTxMessage(&hcan, &tx_header, data, &mailbox);
+    if (status != HAL_OK) {
+        BSP_CAN_Recover();
+    }
     return status;
 }
 

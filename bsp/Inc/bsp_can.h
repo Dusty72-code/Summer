@@ -18,6 +18,7 @@ typedef struct {
 } BSP_CAN_RxMsg_t;
 
 void BSP_CAN_FilterInit(void);
+void BSP_CAN_Recover(void);
 HAL_StatusTypeDef BSP_CAN_SendMessage(uint32_t std_id, uint8_t data[8], uint32_t timeout);
 uint8_t BSP_CAN_GetRxMessage(BSP_CAN_RxMsg_t *msg);
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan);
