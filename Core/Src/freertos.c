@@ -314,6 +314,7 @@ void StartCAN_HBTask(void *argument)
 #ifdef CHASSIS
     if ((now - g_can_state.last_gimbal_rx_time) > CAN_HEARTBEAT_TIMEOUT) {
       g_can_state.gimbal_online = 0U;
+      g_can_state.gimbal_ctrl_rx.servo_online = 0U;
       comm_ok = 0U;
     }
     g_can_state.can_comm_ok = comm_ok;
