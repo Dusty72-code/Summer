@@ -341,7 +341,7 @@ void StartLEDTask(void *argument)
   /* USER CODE BEGIN StartLEDTask */
   (void)argument;
   LED_StartBlink();
-  uint8_t should_breath = 0U;
+  uint8_t should_breath = 0;
   for(;;)
   {
     if (g_self_test_active) {
@@ -349,18 +349,18 @@ void StartLEDTask(void *argument)
       vTaskDelay(pdMS_TO_TICKS(50));
       continue;
     }
-    uint8_t steady_on = 0U;
+    uint8_t steady_on = 0;
 #ifdef GIMBAL
     if (g_can_state.chassis_online && g_can_state.chassis_feedback_rx.motor_online) {
-      steady_on = 1U;
+      steady_on = 1;
     }
-    should_breath = g_can_state.can_comm_ok ? 0U : 1U;
+    should_breath = g_can_state.can_comm_ok ? 0 : 1;
 #endif
 #ifdef CHASSIS
     if (MotorControl_IsError() == 0) {
-      steady_on = 1U;
+      steady_on = 1;
     }
-    should_breath = g_motor.motor_error ? 1U : 0U;
+    should_breath = g_motor.motor_error ? 1 : 0;
 #endif
     if (steady_on) {
       LED_On();
@@ -448,6 +448,7 @@ void StartMotorTask(void *argument)
 {
   /* USER CODE BEGIN StartMotorTask */
   (void)argument;
+  Motor_SelfTest();
   TickType_t xLastWakeTime = xTaskGetTickCount();
   for(;;)
   {
@@ -456,13 +457,12 @@ void StartMotorTask(void *argument)
     float actual_rpm = encoder_to_rpm(encoder_delta, MOTOR_CTRL_DT);
     g_motor.actual_rpm = actual_rpm;
     g_motor.raw_encoder = encoder_delta;
-    g_motor.motor_online = 1U;
     float target_rpm = g_motor.target_rpm;
     if (CAN_App_IsGimbalCtrlUpdated()) {
       GimbalCtrlMsg_t ctrl = CAN_App_GetGimbalCtrl();
       target_rpm = (float)ctrl.wheel_target_speed;
       g_motor.target_rpm = target_rpm;
-      g_motor.target_updated = 1U;
+      g_motor.target_updated = 1;
     }
     if (fabsf(target_rpm) < MOTOR_ZERO_SPEED_THRESHOLD) {
       PID_Reset(&g_motor.speed_pid);
@@ -485,15 +485,12 @@ void StartMotorTask(void *argument)
     }
     CAN_App_SetChassisFeedback((int16_t)actual_rpm, (int16_t)encoder_delta);
     if (fabsf(actual_rpm) > 500.0f) {
-      g_motor.motor_error = 1U;
+      g_motor.motor_error = 1;
       BSP_Motor_Stop();
     }
     else if (fabsf(target_rpm) > 50.0f && fabsf(actual_rpm) < 5.0f
                && duty > MOTOR_PWM_MAX * 0.3f) {
-      g_motor.motor_error = 1U;
-               }
-    else {
-      g_motor.motor_error = 0U;
+      g_motor.motor_error = 1;
     }
     osDelay(10);
   }

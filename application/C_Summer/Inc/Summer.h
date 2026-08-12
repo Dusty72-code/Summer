@@ -6,8 +6,8 @@
 #define SUMMER_SUMMER_H
 
 //烧录云台or底盘
-#define GIMBAL
-//#define CHASSIS
+//#define GIMBAL
+#define CHASSIS
 
 #define CAN_HEARTBEAT_MASK 0xFF
 #define CAN_SLOW_SEND_PERIOD_MS 100

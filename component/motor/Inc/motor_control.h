@@ -17,6 +17,10 @@
 #define MOTOR_OUTPUT_MIN (-(float)MOTOR_PWM_MAX)
 #define MOTOR_OUTPUT_MAX ((float)MOTOR_PWM_MAX)
 #define MOTOR_ZERO_SPEED_THRESHOLD 2.0f
+#define MOTOR_SELF_TEST_PWM 300
+#define MOTOR_SELF_TEST_TIME_MS 500
+#define MOTOR_SELF_TEST_MIN_ENCODER 2
+#define MOTOR_SELF_TEST_STOP_MS 100
 
 typedef struct {
     PID_t speed_pid;
@@ -36,5 +40,6 @@ void MotorControl_SetTarget(float rpm);
 float MotorControl_GetActualSpeed(void);
 uint8_t MotorControl_IsOnline(void);
 uint8_t MotorControl_IsError(void);
+void Motor_SelfTest(void);
 
 #endif //SUMMER_MOTOR_PROTOCOL_H
