@@ -8,7 +8,7 @@
 #include "main.h"
 #include "adc.h"
 
-#define JOYSTICK_ADC_MAX 4095
+#define JOYSTICK_ADC_MAX 4032
 #define JOYSTICK_CENTER 2048
 #define JOYSTICK_DEADZONE 50
 #define JOYSTICK_CAL_DEADZONE 30

@@ -48,20 +48,25 @@ static int8_t map_adc_to_percent(uint16_t adc_val, uint16_t center, uint16_t dea
     int32_t val = (int32_t)adc_val;
     int32_t cen = (int32_t)center;
     int32_t dz = (int32_t)deadzone;
-    if (val >= cen - dz && val <= cen + dz) {
-        return 0;
-    }
+    if (val >= cen - dz && val <= cen + dz) return 0;
+    int32_t pct;
     if (val < cen) {
         int32_t range = cen - dz;
         if (range <= 0) return 0;
         int32_t offset = cen - dz - val;
-        return (int8_t)(-offset * 100 / range);
+        pct = -offset * 100 / range;
     } else {
         int32_t range = (int32_t)JOYSTICK_ADC_MAX - cen - dz;
         if (range <= 0) return 0;
         int32_t offset = val - cen - dz;
-        return (int8_t)(offset * 100 / range);
+        pct = offset * 100 / range;
     }
+    if (pct >= 99) {
+        pct = 100;
+    } else if (pct <= -99) {
+        pct = -100;
+    } //满量程钳位
+    return (int8_t)pct;
 }
 
 int8_t BSP_Joystick_GetXPercent(void) {
