@@ -33,15 +33,15 @@ uint16_t BSP_Joystick_ReadY(void) {
 }
 
 void BSP_Joystick_Calibrate(void) {
-    uint32_t sum_x = 0U, sum_y = 0U;
-    for (uint16_t i = 0U; i < JOYSTICK_CAL_SAMPLES; i++) {
+    uint32_t sum_x = 0, sum_y = 0;
+    for (uint16_t i = 0; i < JOYSTICK_CAL_SAMPLES; i++) {
         sum_x += read_adc_channel(ADC_CHANNEL_0);
         sum_y += read_adc_channel(ADC_CHANNEL_1);
-        for (volatile uint32_t d = 0U; d < 12000U; d++) { __NOP(); }
+        for (volatile uint32_t d = 0; d < 12000U; d++) { __NOP(); }
     }
     cal_center_x = (uint16_t)(sum_x / JOYSTICK_CAL_SAMPLES);
     cal_center_y = (uint16_t)(sum_y / JOYSTICK_CAL_SAMPLES);
-    cal_done = 1U;
+    cal_done = 1;
 }
 
 static int8_t map_adc_to_percent(uint16_t adc_val, uint16_t center, uint16_t deadzone) {

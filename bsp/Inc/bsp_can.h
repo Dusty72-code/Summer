@@ -10,7 +10,7 @@
 
 extern CAN_HandleTypeDef hcan;
 
-#define BSP_CAN_RX_FIFO_SIZE 8U
+#define BSP_CAN_RX_FIFO_SIZE 8
 
 typedef struct {
     CAN_RxHeaderTypeDef header;

@@ -62,7 +62,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-static uint8_t g_self_test_active = 0U;
+static uint8_t g_self_test_active = 0;
 /* USER CODE END Variables */
 osThreadId_t CAN_SendTaskHandle;
 const osThreadAttr_t CAN_SendTask_attributes = {
@@ -216,14 +216,14 @@ void StartCAN_SendTask(void *argument)
     GimbalCtrlMsg_t ctrl = g_can_state.gimbal_ctrl;
     Protocol_EncodeGimbalCtrl(&ctrl, tx_data);
     HAL_StatusTypeDef status = BSP_CAN_SendMessage(CAN_GIMBAL_TO_CHASSIS_ID, tx_data, CAN_TX_TIMEOUT);
-    g_can_state.gimbal_heartbeat = (g_can_state.gimbal_heartbeat + 1U) & CAN_HEARTBEAT_MASK;
+    g_can_state.gimbal_heartbeat = (g_can_state.gimbal_heartbeat + 1) & CAN_HEARTBEAT_MASK;
 #endif
 #ifdef CHASSIS
     g_can_state.chassis_feedback.chassis_heartbeat = g_can_state.chassis_heartbeat;
     ChassisFeedbackMsg_t fb = g_can_state.chassis_feedback;
     Protocol_EncodeChassisFeedback(&fb, tx_data);
     HAL_StatusTypeDef status = BSP_CAN_SendMessage(CAN_CHASSIS_TO_GIMBAL_ID, tx_data, CAN_TX_TIMEOUT);
-    g_can_state.chassis_heartbeat = (g_can_state.chassis_heartbeat + 1U) & CAN_HEARTBEAT_MASK;
+    g_can_state.chassis_heartbeat = (g_can_state.chassis_heartbeat + 1) & CAN_HEARTBEAT_MASK;
 #endif
     if (status == HAL_OK) g_can_state.can_tx_cnt++;
     osDelay(20);
@@ -245,31 +245,31 @@ void StartCAN_RecvTask(void *argument)
   BSP_CAN_RxMsg_t rx_msg;
   for(;;)
   {
-    if (BSP_CAN_GetRxMessage(&rx_msg) == 0U) {
+    if (BSP_CAN_GetRxMessage(&rx_msg) == 0) {
       vTaskDelay(pdMS_TO_TICKS(1));
       continue;
     }
 #ifdef GIMBAL
     if (rx_msg.header.StdId == CAN_CHASSIS_TO_GIMBAL_ID) {
       Protocol_DecodeChassisFeedback(rx_msg.data, &g_can_state.chassis_feedback_rx);
-      g_can_state.chassis_fb_updated = 1U;
+      g_can_state.chassis_fb_updated = 1;
       g_can_state.last_chassis_rx_time = HAL_GetTick();
       g_can_state.can_rx_cnt++;
       if (g_can_state.chassis_feedback_rx.chassis_heartbeat != g_can_state.last_chassis_hb) {
         g_can_state.last_chassis_hb = g_can_state.chassis_feedback_rx.chassis_heartbeat;
-        g_can_state.chassis_online = 1U;
+        g_can_state.chassis_online = 1;
       }
     }
 #endif
 #ifdef CHASSIS
     if (rx_msg.header.StdId == CAN_GIMBAL_TO_CHASSIS_ID) {
       Protocol_DecodeGimbalCtrl(rx_msg.data, &g_can_state.gimbal_ctrl_rx);
-      g_can_state.gimbal_ctrl_updated = 1U;
+      g_can_state.gimbal_ctrl_updated = 1;
       g_can_state.last_gimbal_rx_time = HAL_GetTick();
       g_can_state.can_rx_cnt++;
       if (g_can_state.gimbal_ctrl_rx.gimbal_heartbeat != g_can_state.last_gimbal_hb) {
         g_can_state.last_gimbal_hb = g_can_state.gimbal_ctrl_rx.gimbal_heartbeat;
-        g_can_state.gimbal_online  = 1U;
+        g_can_state.gimbal_online = 1;
       }
     }
 #endif
@@ -297,11 +297,11 @@ void StartCAN_HBTask(void *argument)
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(50));
     uint32_t now = HAL_GetTick();
     uint8_t prev_comm_ok = g_can_state.can_comm_ok;
-    uint8_t comm_ok = 1U;
+    uint8_t comm_ok = 1;
 #ifdef GIMBAL
     if ((now - g_can_state.last_chassis_rx_time) > CAN_HEARTBEAT_TIMEOUT) {
-      g_can_state.chassis_online = 0U;
-      comm_ok = 0U;
+      g_can_state.chassis_online = 0;
+      comm_ok = 0;
     }
     g_can_state.can_comm_ok = comm_ok;
     if (prev_comm_ok != comm_ok) {
@@ -313,9 +313,9 @@ void StartCAN_HBTask(void *argument)
 #endif
 #ifdef CHASSIS
     if ((now - g_can_state.last_gimbal_rx_time) > CAN_HEARTBEAT_TIMEOUT) {
-      g_can_state.gimbal_online = 0U;
-      g_can_state.gimbal_ctrl_rx.servo_online = 0U;
-      comm_ok = 0U;
+      g_can_state.gimbal_online = 0;
+      g_can_state.gimbal_ctrl_rx.servo_online = 0;
+      comm_ok = 0;
     }
     g_can_state.can_comm_ok = comm_ok;
     if (prev_comm_ok != comm_ok) {
@@ -391,9 +391,9 @@ void StartJoystickTask(void *argument)
   {
     vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(JOYSTICK_SAMPLE_PERIOD_MS));
     if (!g_self_test_active && Joystick_APP_IsSWPressed()) {
-      g_self_test_active = 1U;
+      g_self_test_active = 1;
       SelfTest_Execute();
-      g_self_test_active = 0U;
+      g_self_test_active = 0;
       continue;
     }
     if (g_self_test_active) {
@@ -528,7 +528,7 @@ void StartOLEDTask(void *argument)
 #ifdef GIMBAL
 static void SelfTest_Execute(void)
 {
-  CAN_App_SetStatusFlag(STATUS_SELF_TEST, 1U);
+  CAN_App_SetStatusFlag(STATUS_SELF_TEST, 1);
   for (int i = 0; i < 2; i++) {
     LED_Off();
     vTaskDelay(pdMS_TO_TICKS(150));
@@ -548,7 +548,7 @@ static void SelfTest_Execute(void)
   CAN_App_SetGimbalCtrl(0, -100);
   vTaskDelay(pdMS_TO_TICKS(SELF_TEST_PHASE_DURATION_MS));
   CAN_App_SetGimbalCtrl(0, 0);
-  CAN_App_SetStatusFlag(STATUS_SELF_TEST, 0U);
+  CAN_App_SetStatusFlag(STATUS_SELF_TEST, 0);
   LED_On();
 }
 #endif

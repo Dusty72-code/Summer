@@ -115,19 +115,19 @@ void BSP_OLED_ShowChar(uint8_t x, uint8_t y, char ch) {
     if (ch < 0x20 || ch > 0x7E) ch = ' ';
     if (x > OLED_WIDTH - 6 || y > OLED_HEIGHT - 8) return;
     uint8_t idx = ch - 0x20;
-    uint8_t page = y / 8U;
-    uint8_t bit = y % 8U;
+    uint8_t page = y / 8;
+    uint8_t bit = y % 8;
     for (uint8_t i = 0; i < 6; i++) {
         uint8_t col = x + i;
         if (col >= OLED_WIDTH) break;
         if (bit == 0) {
             oled_buf[page * OLED_WIDTH + col] = font6x8[idx][i];
         } else {
-            oled_buf[page * OLED_WIDTH + col] &= ~(0xFFU << bit);
+            oled_buf[page * OLED_WIDTH + col] &= ~(0xFF << bit);
             oled_buf[page * OLED_WIDTH + col] |= (font6x8[idx][i] << bit);
             if (page + 1 < OLED_PAGES) {
-                oled_buf[(page + 1) * OLED_WIDTH + col] &= ~(0xFFU >> (8U - bit));
-                oled_buf[(page + 1) * OLED_WIDTH + col] |= (font6x8[idx][i] >> (8U - bit));
+                oled_buf[(page + 1) * OLED_WIDTH + col] &= ~(0xFF >> (8 - bit));
+                oled_buf[(page + 1) * OLED_WIDTH + col] |= (font6x8[idx][i] >> (8 - bit));
             }
         }
     }

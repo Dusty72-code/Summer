@@ -30,23 +30,23 @@ void LED_Off(void) {
 }
 
 void LED_Breath(uint8_t should_breath) {
-    static uint8_t breath_idx = 0U;
+    static uint8_t breath_idx = 0;
     if (!should_breath) {
         LED_On();
-        breath_idx = 0U;
+        breath_idx = 0;
         return;
     }
     uint8_t level = breath_table[breath_idx];
-    uint32_t on_ms  = (uint32_t)level * LED_BREATH_STEP_MS / 100U;
+    uint32_t on_ms = (uint32_t)level * LED_BREATH_STEP_MS / 100;
     uint32_t off_ms = LED_BREATH_STEP_MS - on_ms;
-    if (on_ms > 0U) {
+    if (on_ms > 0) {
         LED_On();
         vTaskDelay(pdMS_TO_TICKS(on_ms));
     }
-    if (off_ms > 0U) {
+    if (off_ms > 0) {
         LED_Off();
         vTaskDelay(pdMS_TO_TICKS(off_ms));
     }
     breath_idx++;
-    if (breath_idx >= LED_PWM_RESOLUTION) breath_idx = 0U;
+    if (breath_idx >= LED_PWM_RESOLUTION) breath_idx = 0;
 }

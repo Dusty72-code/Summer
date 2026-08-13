@@ -8,7 +8,7 @@ ServoCtrl_t g_servo;
 
 void ServoControl_Init(void) {
     memset(&g_servo, 0, sizeof(g_servo));
-    g_servo.servo_online = 1U;
+    g_servo.servo_online = 1;
     BSP_Servo_Init();
 }
 
