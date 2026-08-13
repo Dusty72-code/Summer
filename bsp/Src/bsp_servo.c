@@ -21,7 +21,7 @@ void BSP_Servo_SetSpeed(int8_t speed) {
     if (speed == 0)
         pulse = SERVO_PULSE_STOP;
     else
-        pulse = SERVO_PULSE_STOP + (int32_t)speed * 10;
+        pulse = SERVO_PULSE_STOP - (int32_t)speed * 10;
     BSP_Servo_SetPulse(pulse);
 }
 
