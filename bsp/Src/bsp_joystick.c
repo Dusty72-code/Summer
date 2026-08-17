@@ -37,7 +37,7 @@ void BSP_Joystick_Calibrate(void) {
     for (uint16_t i = 0; i < JOYSTICK_CAL_SAMPLES; i++) {
         sum_x += read_adc_channel(ADC_CHANNEL_0);
         sum_y += read_adc_channel(ADC_CHANNEL_1);
-        for (volatile uint32_t d = 0; d < 12000U; d++) { __NOP(); }
+        for (volatile uint32_t d = 0; d < 12000; d++) { __NOP(); }
     }
     cal_center_x = (uint16_t)(sum_x / JOYSTICK_CAL_SAMPLES);
     cal_center_y = (uint16_t)(sum_y / JOYSTICK_CAL_SAMPLES);

@@ -449,7 +449,7 @@ void StartMotorTask(void *argument)
 {
   /* USER CODE BEGIN StartMotorTask */
   (void)argument;
-  Motor_SelfTest();
+  //Motor_SelfTest();
   TickType_t xLastWakeTime = xTaskGetTickCount();
   for(;;)
   {

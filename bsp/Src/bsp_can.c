@@ -28,7 +28,7 @@ uint8_t BSP_CAN_GetRxMessage(BSP_CAN_RxMsg_t *msg) {
     taskENTER_CRITICAL();
     can_rx_count--;
     taskEXIT_CRITICAL();
-    return 1U;
+    return 1;
 }
 
 void BSP_CAN_FilterInit(void) {
