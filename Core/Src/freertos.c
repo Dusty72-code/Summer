@@ -449,7 +449,7 @@ void StartMotorTask(void *argument)
 {
   /* USER CODE BEGIN StartMotorTask */
   (void)argument;
-  //Motor_SelfTest();
+  Motor_SelfTest();
   TickType_t xLastWakeTime = xTaskGetTickCount();
   for(;;)
   {
@@ -485,15 +485,6 @@ void StartMotorTask(void *argument)
       BSP_Motor_Stop();
     }
     CAN_App_SetChassisFeedback((int16_t)actual_rpm, (int16_t)encoder_delta);
-    if (fabsf(actual_rpm) > 500.0f) {
-      g_motor.motor_error = 1;
-      BSP_Motor_Stop();
-    }
-    else if (fabsf(target_rpm) > 50.0f && fabsf(actual_rpm) < 5.0f
-               && duty > MOTOR_PWM_MAX * 0.3f) {
-      g_motor.motor_error = 1;
-    }
-    osDelay(10);
   }
   /* USER CODE END StartMotorTask */
 }
@@ -538,6 +529,7 @@ static void SelfTest_Execute(void)
   CAN_App_SetGimbalCtrl(60, 0);
   BSP_Servo_SetSpeed(100);
   vTaskDelay(pdMS_TO_TICKS(SELF_TEST_SERVO_DURATION_MS));
+  CAN_App_SetGimbalCtrl(-60, 0);
   BSP_Servo_SetSpeed(-100);
   vTaskDelay(pdMS_TO_TICKS(SELF_TEST_SERVO_DURATION_MS));
   BSP_Servo_SetSpeed(0);

@@ -47,7 +47,7 @@ void OLED_app_Update(void)
         BSP_OLED_ShowString(0, 46, line);
     }
     {
-        uint32_t sec = xTaskGetTickCount() / 1000U;
+        uint32_t sec = xTaskGetTickCount() / 1000;
         snprintf(line, sizeof(line), "Up:%5lus", (unsigned long)sec);
         BSP_OLED_ShowString(0, 55, line);
     }
